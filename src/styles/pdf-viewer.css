@@ -36,7 +36,7 @@
 .pv-status { color: var(--site-accent); font-size: 0.85rem; }
 .pv-status:empty { display: none; }
 .pv-error { padding: 12px; color: var(--site-error); background: var(--site-error-bg); border-radius: 8px; }
-.pv-stage { height: min(78vh, 1000px); min-height: 320px; overflow: auto; background: var(--site-preview); padding: 20px; border-radius: 10px; overscroll-behavior: contain; }
+.pv-stage { height: min(78vh, 1000px); min-height: 320px; overflow: auto; scrollbar-gutter: stable; background: var(--site-preview); padding: 20px; border-radius: 10px; overscroll-behavior: contain; }
 .pv-sheet { position: relative; margin-inline: auto; background: white; isolation: isolate; box-shadow: 0 3px 16px var(--site-shadow); }
 .pv-sheet canvas { display: block; width: 100%; height: 100%; }
 .pv-marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: multiply; }

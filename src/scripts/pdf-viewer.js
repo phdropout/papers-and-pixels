@@ -3,6 +3,7 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { exportHighlightedPdf, highlightColors, highlightPath, pointerPdfPoint, selectionQuads, zoomFromPercent } from "./pdf-viewer-core.js";
 import { sitePath } from "./site-path.js";
 import { createThumbnailSidebar, attachViewerFullscreen } from "./pdf-viewer-navigation.js";
+import { observePdfWidth } from "./pdf-viewer-resize.js";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 const root = document.querySelector("[data-pdf-viewer]");
@@ -94,7 +95,8 @@ function initialize(root) {
     cancelRender();
     thumbnails.setActive(pageIndex);
     const version = renderVersion;
-    rendering = true; sheet.hidden = true; controls(); status("Rendering page…");
+    // Retain page dimensions while rendering so the scroll range cannot collapse.
+    rendering = true; sheet.style.visibility = "hidden"; controls(); status("Rendering page…");
     renderQueue = renderQueue.catch(() => {}).then(async () => {
       if (version !== renderVersion || !pdf) return;
       const page = await pdf.getPage(pageIndex + 1);
@@ -103,8 +105,10 @@ function initialize(root) {
         const unit = page.getViewport({ scale: 1 });
         const padding = parseFloat(getComputedStyle(stage).paddingLeft) * 2;
         if (fit) zoom = Math.min(3, Math.max(0.1, (stage.clientWidth - padding) / unit.width));
+        resizeObserver.remember();
         viewport = page.getViewport({ scale: zoom });
         sheet.style.width = `${viewport.width}px`; sheet.style.height = `${viewport.height}px`;
+        sheet.hidden = false;
         sheet.style.setProperty("--total-scale-factor", scale());
         sheet.style.setProperty("--scale-round-x", "1px"); sheet.style.setProperty("--scale-round-y", "1px");
         const canvas = find("canvas");
@@ -129,7 +133,7 @@ function initialize(root) {
           status("Page displayed, but text selection is unavailable. Use Highlight brush.");
         }
         if (version !== renderVersion) return;
-        sheet.hidden = false; draw();
+        sheet.style.visibility = ""; draw();
         if (anchor) {
           const [x, y] = viewport.convertToViewportPoint(...anchor);
           const pageBounds = sheet.getBoundingClientRect(), stageBounds = stage.getBoundingClientRect();
@@ -145,8 +149,11 @@ function initialize(root) {
     }).catch((cause) => {
       if (version !== renderVersion) return;
       console.error("PDF page could not be rendered:", cause);
+      sheet.hidden = true; sheet.style.visibility = "";
       error("This page could not be displayed. Try another page or open the PDF again.");
-    }).finally(() => { if (version === renderVersion) { rendering = false; controls(); } });
+    }).finally(() => {
+      if (version === renderVersion) { rendering = false; controls(); resizeObserver.check(); }
+    });
   }
   async function open(file) {
     if (!file || loading || exporting) return;
@@ -235,13 +242,17 @@ function initialize(root) {
   find("prev").onclick = () => navigate(pageIndex - 1);
   find("next").onclick = () => navigate(pageIndex + 1);
   find("page").onchange = () => { const next = Number(find("page").value); if (Number.isInteger(next) && next >= 1 && next <= pdf.numPages) navigate(next - 1); else find("page").value = pageIndex + 1; };
+  function readingAnchor() {
+    if (!viewport || sheet.hidden) return null;
+    const bounds = stage.getBoundingClientRect();
+    return pointerPdfPoint(bounds.left + stage.clientWidth / 2, bounds.top + stage.clientHeight / 2, sheet.getBoundingClientRect(), viewport);
+  }
   function setZoom(value) {
     if (!pdf || rendering || loading || exporting) return;
     const next = zoomFromPercent(value, zoom);
     find("zoom").value = Math.round(next * 100);
     if (next === zoom) return;
-    const bounds = stage.getBoundingClientRect();
-    const anchor = pointerPdfPoint(bounds.left + stage.clientWidth / 2, bounds.top + stage.clientHeight / 2, sheet.getBoundingClientRect(), viewport);
+    const anchor = readingAnchor();
     zoom = next; fit = false; requestRender(anchor);
   }
   find("zoom-in").onclick = () => setZoom(Math.round(zoom * 100) + 5);
@@ -251,7 +262,7 @@ function initialize(root) {
     if (event.key === "Enter") { event.preventDefault(); setZoom(find("zoom").value); }
     if (event.key === "Escape") { find("zoom").value = Math.round(zoom * 100); find("zoom").blur(); }
   });
-  find("fit").onclick = () => { fit = true; requestRender(); };
+  find("fit").onclick = () => { fit = true; requestRender(readingAnchor()); };
   find("download").onclick = async () => {
     if (!bytes || exporting || rendering || loading) return;
     stopStroke(true); exporting = true; controls(); error(); status("Preparing highlighted PDF…");
@@ -262,11 +273,12 @@ function initialize(root) {
       const link = document.createElement("a"); link.href = downloadUrl; link.download = name.replace(/\.pdf$/i, "") + "-highlighted.pdf";
       document.body.append(link); link.click(); link.remove(); dirty = false; status("Download ready. Your original file is unchanged.");
     } catch (cause) { console.error("PDF export failed:", cause); error("The PDF could not be saved. Your highlights are still here; try again."); status(""); }
-    finally { exporting = false; controls(); }
+    finally { exporting = false; controls(); resizeObserver.check(); }
   };
-  let resizeTimer;
-  const resizeObserver = new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (pdf && fit && !loading && !exporting) requestRender(); }, 200); });
-  resizeObserver.observe(stage);
+  const resizeObserver = observePdfWidth(stage, {
+    canRender: () => Boolean(pdf) && fit && !loading && !rendering && !exporting,
+    onResize: () => requestRender(readingAnchor()),
+  });
   window.addEventListener("beforeunload", (event) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
-  window.addEventListener("pagehide", () => { generation++; cancelRender(); clearTimeout(resizeTimer); resizeObserver.disconnect(); thumbnails.clear(); detachFullscreen(); task?.destroy().catch(() => {}); if (downloadUrl) URL.revokeObjectURL(downloadUrl); });
+  window.addEventListener("pagehide", () => { generation++; cancelRender(); resizeObserver.disconnect(); thumbnails.clear(); detachFullscreen(); task?.destroy().catch(() => {}); if (downloadUrl) URL.revokeObjectURL(downloadUrl); });
 }

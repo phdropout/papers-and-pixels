@@ -10,7 +10,7 @@ import UsefulDetails from "./UsefulDetails.astro";
       <p>Read documents, highlight text, and mark scanned pages with a highlighter brush.</p>
     </header>
     <div class="pv-tool" data-pdf-viewer>
-      <input data-file type="file" accept="application/pdf,.pdf" hidden />
+      <input data-file id="pdf-viewer-file" name="pdf-viewer-file" type="file" accept="application/pdf,.pdf" hidden />
       <div class="pv-upload" data-upload>
         <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M28 5H12v38h26V15L28 5Z M28 5v11h10 M18 25h14 M18 32h10" /></svg>
         <h2>Open a PDF</h2>
@@ -32,8 +32,8 @@ import UsefulDetails from "./UsefulDetails.astro";
             <button data-mode="text" type="button" aria-pressed="true">Text highlight</button>
             <button data-mode="brush" type="button" aria-pressed="false">Highlight brush</button>
           </div>
-          <label>Color <select data-color><option value="yellow">Yellow</option><option value="green">Green</option><option value="pink">Pink</option><option value="blue">Blue</option></select></label>
-          <label>Brush size <select data-size><option value="8">Fine</option><option value="16" selected>Medium</option><option value="28">Broad</option></select></label>
+          <label>Color <select data-color id="pdf-viewer-color" name="pdf-viewer-color"><option value="yellow">Yellow</option><option value="green">Green</option><option value="pink">Pink</option><option value="blue">Blue</option></select></label>
+          <label>Brush size <select data-size id="pdf-viewer-brush-size" name="pdf-viewer-brush-size"><option value="8">Fine</option><option value="16" selected>Medium</option><option value="28">Broad</option></select></label>
           <button class="pv-secondary" data-apply type="button" disabled>Highlight selection</button>
           <button class="pv-secondary" data-undo type="button" disabled>Undo</button>
           <button class="pv-secondary" data-redo type="button" disabled>Redo</button>
@@ -41,12 +41,12 @@ import UsefulDetails from "./UsefulDetails.astro";
         </div>
         <div class="pv-navigation" role="group" aria-label="Page and zoom controls">
           <button class="pv-secondary" data-prev type="button" aria-label="Previous page">←</button>
-          <label>Page <input data-page type="number" min="1" value="1" aria-label="Page number" /></label>
+          <label>Page <input data-page id="pdf-viewer-page" name="pdf-viewer-page" type="number" min="1" value="1" aria-label="Page number" /></label>
           <span data-total></span>
           <button class="pv-secondary" data-next type="button" aria-label="Next page">→</button>
           <div class="pv-zoom">
             <button class="pv-secondary" data-zoom-out type="button" aria-label="Zoom out">−</button>
-            <label class="pv-zoom-value"><input data-zoom type="number" min="10" max="300" step="1" value="100" aria-label="Zoom percentage" title="Enter a zoom percentage from 10 to 300" /><span aria-hidden="true">%</span></label>
+            <label class="pv-zoom-value"><input data-zoom id="pdf-viewer-zoom" name="pdf-viewer-zoom" type="number" min="10" max="300" step="1" value="100" aria-label="Zoom percentage" title="Enter a zoom percentage from 10 to 300" /><span aria-hidden="true">%</span></label>
             <button class="pv-secondary" data-zoom-in type="button" aria-label="Zoom in">+</button>
             <button class="pv-secondary" data-fit type="button">Fit width</button>
           </div>
