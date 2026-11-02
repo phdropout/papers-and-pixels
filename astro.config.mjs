@@ -1,12 +1,18 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
+import { SITE_URL } from './src/site.js';
+import { siteOrigin, includeInSitemap } from './src/scripts/seo.js';
+
+const origin = siteOrigin(process.env.ASTRO_SITE || SITE_URL);
+const base = process.env.ASTRO_BASE || '/';
 
 // https://astro.build/config
 export default defineConfig({
-  // The Pages workflow supplies these from GitHub's configured site URL.
-  // Local development and builds on other hosts default to the domain root.
-  site: process.env.ASTRO_SITE || undefined,
-  base: process.env.ASTRO_BASE || '/',
+  // Pages supplies its configured domain; the public HTTPS domain is the default.
+  site: origin,
+  base,
+  integrations: [sitemap({ filter: (page) => includeInSitemap(page, origin, base) })],
   trailingSlash: 'always',
   vite: {
     optimizeDeps: {

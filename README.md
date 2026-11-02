@@ -24,25 +24,29 @@ npm run preview
 
 ## Publish on GitHub Pages
 
-The configured Git remote is `https://github.com/phdropout/tool-website.git`. The workflow in `.github/workflows/deploy.yml` publishes pushes to `main`, or can be run manually from the Actions tab.
+The repository is `https://github.com/phdropout/papers-and-pixels.git`. The workflow in `.github/workflows/deploy.yml` publishes pushes to `main`, or can be run manually from the Actions tab.
 
 1. Open the repository on GitHub. Under **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source. GitHub Free requires a public repository for Pages.
 2. Review and commit the project changes, including `.github/workflows/deploy.yml`, `package-lock.json`, and the new path helper and build-check script. Push to `main`.
 3. Open **Actions → Deploy to GitHub Pages** and wait for both jobs to finish. If the workflow is already on GitHub, use **Run workflow** after enabling Pages.
-4. Open the published URL shown in the deployment. With the default project-site URL this is `https://phdropout.github.io/tool-website/`. If the account's main Pages site has a custom domain, the project may inherit that domain; use the URL GitHub reports.
+4. Open `https://papersandpixels.net/`, the custom domain configured in GitHub Pages settings.
 5. Check navigation, image tools, PDF previews and exports, the media viewer, About, and Privacy. Use only files you deliberately select for testing.
 
 The workflow reads the configured Pages origin and base path automatically, installs dependencies with `npm ci`, runs tests, builds, validates internal links/assets and PDF resource paths, and deploys `dist/`. It uses the built-in GitHub token; no personal token or manually configured secrets are required. Your other repository's site is independent of this deployment.
 
-### Reproduce the project-site build locally
+### Production URLs and subdirectory previews
+
+The public site URL defaults to `https://papersandpixels.net`, defined in `src/site.js`. Normal local development uses `/` and does not send Analytics events. Build-time SEO metadata points to the public site.
+
+To check a subdirectory deployment locally:
 
 ```sh
-ASTRO_SITE=https://phdropout.github.io ASTRO_BASE=/tool-website npm run build
-ASTRO_BASE=/tool-website node scripts/check-built-site.mjs
-ASTRO_SITE=https://phdropout.github.io ASTRO_BASE=/tool-website npm run preview
+ASTRO_SITE=https://example.com ASTRO_BASE=/tools npm run build
+ASTRO_SITE=https://example.com ASTRO_BASE=/tools node scripts/check-built-site.mjs
+ASTRO_SITE=https://example.com ASTRO_BASE=/tools npm run preview
 ```
 
-Visit the preview URL with `/tool-website/` appended. Without these environment variables, local development uses `/`.
+Visit the preview URL with `/tools/` appended. Rebuild normally with `npm run build` when finished.
 
 ### Custom domains and future hosting
 
@@ -75,3 +79,26 @@ Before publishing this integration:
 The tag configuration removes query strings and fragments from page/referrer URLs and disables Google signals and advertising personalization. Campaign parameters in page URLs are intentionally excluded. Analytics reports count consenting, unblocked visitors and will not represent every visit.
 
 `tests/analytics.test.mjs` uses a mocked Google tag and DOM. Tests do not contact Google or send real traffic events.
+
+
+## SEO foundation
+
+- `src/site.js` defines the public site URL. GitHub Pages can override the origin and base path during the build; public URLs are normalized to HTTPS.
+- The shared layout emits one canonical URL per page, descriptive title/description tags, and Open Graph/Twitter summary metadata. The homepage includes WebSite structured data for the Papers & Pixels name; no ratings or search actions are invented.
+- `/image-resizer/`, `/image-compressor/`, and `/image-converter/` remain usable entry points to the shared Image Tools workspace. They canonicalize to `/image-tools/` and are excluded from the sitemap. These are preferences for search engines, not browser redirects. If they become distinct standalone tools later, review this mapping in `src/scripts/seo.js`.
+- Astro's official sitemap integration generates `sitemap-index.xml` and `sitemap-0.xml` from built routes. Only canonical HTML pages are included; do not add synthetic last-modified dates or manually list temporary uploads/downloads.
+- `robots.txt` allows crawling and announces the sitemap. For a domain-root deployment it is served at `https://papersandpixels.net/robots.txt`; a subdirectory copy does not replace the domain root's robots file.
+- `node scripts/check-built-site.mjs` verifies generated metadata, canonical URLs, WebSite schema, sitemap coverage, robots formatting, and asset paths. It runs in the deployment workflow. Supply the same `ASTRO_SITE` and `ASTRO_BASE` used for the build when testing overrides.
+
+After deploying:
+
+1. Verify `https://papersandpixels.net/sitemap-index.xml` and `https://papersandpixels.net/robots.txt` load correctly. Confirm HTTP and `www` redirect to the HTTPS primary domain through GitHub Pages settings.
+2. In Google Search Console, add a **Domain** property for `papersandpixels.net`. Complete its DNS TXT verification in Squarespace, keeping the existing GitHub Pages A and CNAME records.
+3. Submit `https://papersandpixels.net/sitemap-index.xml` in **Sitemaps**. Use **URL Inspection** on the homepage and a tool page to verify Google's view of the published URLs and request indexing.
+
+These changes help search engines discover and interpret the site; they do not guarantee indexing or ranking.
+
+References:
+- https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+- https://docs.astro.build/en/guides/integrations-guide/sitemap/
+- https://support.google.com/webmasters/answer/34592

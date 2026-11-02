@@ -38,6 +38,7 @@ jobs:
       - name: Verify published paths
         run: node scripts/check-built-site.mjs
         env:
+          ASTRO_SITE: ${{ steps.pages.outputs.origin }}
           ASTRO_BASE: ${{ steps.pages.outputs.base_path }}
       - uses: actions/upload-pages-artifact@v3
         with:

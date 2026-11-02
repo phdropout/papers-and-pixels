@@ -23,6 +23,7 @@ Manage the background server with `astro dev stop`, `astro dev status`, and `ast
 - Use the shared theme variables in `src/styles/global.css` for UI colors so new tools support both light and dark mode. Keep PDF pages and exported files in their original colors.
 - Keep testing and file access within this project. Do not browse unrelated files or locations, including through desktop automation or native file pickers.
 - Google Analytics is opt-in and limited to the production custom domain. Keep analytics tests mocked; do not send real events during testing or add file names, local file URLs, artwork, or tool input values to event parameters.
+- Keep canonical URLs, page metadata, and the generated sitemap consistent. The Image Tools entry-point aliases canonicalize to `/image-tools/`; review that mapping if standalone tools are introduced. Run `node scripts/check-built-site.mjs` after production builds, using the same `ASTRO_SITE` and `ASTRO_BASE` overrides as the build.
 
 ## Documentation
 
